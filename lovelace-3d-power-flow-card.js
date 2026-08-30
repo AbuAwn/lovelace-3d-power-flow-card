@@ -118,35 +118,40 @@ class PowerFlow3DCard extends HTMLElement {
       return isNaN(val) ? 0 : val;
     };
 
-    const rawGrid = getRawState(this.config.entities.grid);
+    let rawGrid = getRawState(this.config.entities.grid);
     const rawSolar = Math.max(0, getRawState(this.config.entities.solar));
     let rawBatt = getRawState(this.config.entities.battery);
 
-    // Invert grid power: Standard convention is positive = import, negative = export.
-    // If entity has 'invertid' in name or invert_grid is true, positive = export, negative = import.
-    const isGridInverted = this.config.invert_grid === true || 
-      (this.config.invert_grid !== false && this.config.entities.grid && this.config.entities.grid.includes('invertid'));
-    const gridPower = isGridInverted ? -rawGrid : rawGrid;
-
-    // Invert battery power if configured
-    const invertBattery = this.config.invert_battery === true;
-    if (invertBattery) {
+    // Optional manual inverters if user explicitly sets them in config
+    if (this.config.invert_grid === true) {
+      rawGrid = -rawGrid;
+    }
+    if (this.config.invert_battery === true) {
       rawBatt = -rawBatt;
     }
 
-    // Battery states (Hoymiles convention: negative = discharging into home, positive = charging)
+    // Grid power convention:
+    // Positive (> 0): Importing power from the grid into the home
+    // Negative (< 0): Exporting power from home to the grid
+    const gridPower = rawGrid;
+
+    // Battery power convention (Hoymiles / standard hybrid storage):
+    // Negative (< 0): Discharging power into the home
+    // Positive (> 0): Charging power into the battery
     const isDischarging = rawBatt < -5;
     const isCharging = rawBatt > 5;
     const battAbs = Math.abs(rawBatt);
 
-    // Calculate Home Load (Consumo Casa)
+    // Conservation of Energy Calculation:
+    // Home Load = Solar + Grid - Battery
+    // - If Grid is positive (import): adds power to home.
+    // - If Grid is negative (export): subtracts power leaving the home.
+    // - If Battery is negative (discharging): (- rawBatt) is positive, adds power to home.
+    // - If Battery is positive (charging): (- rawBatt) is negative, subtracts power absorbed by battery.
     let load = 0;
     if (this.config.entities.load) {
       load = Math.abs(getRawState(this.config.entities.load));
     } else {
-      // Conservation of Energy: Load = Solar + Grid (import - export) - Battery (charging - discharging)
-      // When discharging: rawBatt is negative -> (- rawBatt) is positive, which adds to load.
-      // When exporting: gridPower is negative -> adds negative (subtracts export from load).
       load = Math.max(0, Math.round(rawSolar + gridPower - rawBatt));
     }
 
@@ -158,12 +163,12 @@ class PowerFlow3DCard extends HTMLElement {
     const pathGrid = this.querySelector('#path-grid');
     elGrid.innerText = formatW(gridPower);
     if (gridPower > 5) {
-      // Importing from grid (flow forward into house)
+      // Importing from grid -> Cyan glowing flow into house
       pathGrid.style.stroke = '#00e5ff';
       pathGrid.style.filter = 'url(#glow-cyan)';
       pathGrid.style.animation = 'flow-forward 1.8s linear infinite';
     } else if (gridPower < -5) {
-      // Exporting to grid (flow backward from house to grid)
+      // Exporting to grid -> Orange glowing flow out to grid
       pathGrid.style.stroke = '#ff9100';
       pathGrid.style.filter = 'url(#glow-orange)';
       pathGrid.style.animation = 'flow-backward 1.8s linear infinite';
