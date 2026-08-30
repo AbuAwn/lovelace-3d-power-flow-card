@@ -25,6 +25,12 @@ entities:
   battery_soc: sensor.hoymiles_hybride_battery_soc
 ```
 
+### Preview
+<p align="center">
+  <img src="preview.png" alt="3D Power Flow Card Preview" width="450">
+</p>
+
+
 ## Options
 | Name | Type | Requirement | Description | Default |
 | --- | --- | --- | --- | --- |
