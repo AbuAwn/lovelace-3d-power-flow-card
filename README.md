@@ -16,7 +16,7 @@ A custom Lovelace card that displays your home's energy flow over a beautiful 3D
 ```yaml
 type: custom:lovelace-3d-power-flow-card
 title: FLUJO DE ENERGÍA
-image: /local/casa_3d.png
+# image: /local/mi_casa_3d.png # (Opcional: Si se omite, usa la imagen 3D por defecto)
 entities:
   grid: sensor.potencia_red_invertida
   load: sensor.consumo_casa_total
@@ -24,3 +24,12 @@ entities:
   battery: sensor.hoymiles_hybride_battery_power
   battery_soc: sensor.hoymiles_hybride_battery_soc
 ```
+
+## Options
+| Name | Type | Requirement | Description | Default |
+| --- | --- | --- | --- | --- |
+| `type` | string | **Required** | `custom:lovelace-3d-power-flow-card` | |
+| `entities` | object | **Required** | Entities mapping (`grid`, `load`, `solar`, `battery`, `battery_soc`) | |
+| `title` | string | Optional | Header title | `FLUJO DE ENERGÍA` |
+| `image` | string | Optional | Custom background image path or URL | Built-in 3D House Image (`default_3d_house.png`) |
+

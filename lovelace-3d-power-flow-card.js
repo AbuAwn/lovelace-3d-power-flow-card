@@ -1,7 +1,10 @@
 class PowerFlow3DCard extends HTMLElement {
   set hass(hass) {
     if (!this.content) {
-      const bgImage = this.config.image || '/local/default_3d_house.png';
+      const defaultImage = (typeof import.meta !== 'undefined' && import.meta.url)
+        ? new URL('default_3d_house.png', import.meta.url).href
+        : '/hacsfiles/lovelace-3d-power-flow-card/default_3d_house.png';
+      const bgImage = this.config.image || defaultImage;
       const title = this.config.title || 'FLUJO DE ENERGÍA';
 
       this.innerHTML = `
