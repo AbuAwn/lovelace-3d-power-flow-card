@@ -1,0 +1,6 @@
+{
+  "name": "3D Power Flow Card",
+  "render_readme": true,
+  "filename": "lovelace-3d-power-flow-card.js",
+  "iot_class": "Local Push"
+}
