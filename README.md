@@ -58,6 +58,64 @@ battery_units: 1
 
 ---
 
+## 🔌 Individual Devices (Piscina, AC, Calentador, etc.)
+
+Add a `individual` list to monitor specific devices. They appear as live chips below the 3D house:
+
+```yaml
+individual:
+  - entity: sensor.piscina_potencia
+    name: Piscina
+    type: pool              # Enables preset icon & color
+    display_zero: false     # Hide chip when off
+
+  - entity: sensor.termo_potencia
+    name: Calentador
+    type: heater
+    display_zero: false
+
+  - entity: sensor.id_ac_salon_power
+    name: Aire Acondicionado
+    type: ac
+    display_zero: true      # Always visible
+
+  - entity: sensor.secadora_potencia
+    name: Secadora
+    type: dryer
+    display_zero: false
+    display_zero_tolerance: 1   # Hide below 1 W
+```
+
+### Available `type` presets
+
+| `type` | Icon | Color |
+|---|---|---|
+| `pool` | 🏊 `mdi:pool` | Cyan |
+| `heater` | 🔥 `mdi:water-boiler` | Orange |
+| `ac` | ❄️ `mdi:air-conditioner` | Light Blue |
+| `washer` | 🫧 `mdi:washing-machine` | Sky Blue |
+| `dryer` | 🌀 `mdi:tumble-dryer` | Amber |
+| `ev` | 🔌 `mdi:ev-station` | Green |
+| `boiler` | 🔥 `mdi:fire` | Orange |
+| `oven` | 🍳 `mdi:stove` | Orange |
+
+You can also override icon and color freely:
+```yaml
+individual:
+  - entity: sensor.mi_dispositivo
+    name: Dispositivo
+    icon: mdi:television       # Any MDI icon
+    color: '#ff6b35'           # Any CSS color
+    display_zero: false
+```
+
+### Device Chip Behavior
+- **Active** (power > 0): Full opacity, colored glow border, shows `X W` or `X,XX kW`.
+- **Inactive** (power ≈ 0): Dimmed chip, shows `—`.
+- With `display_zero: false`: Chip is hidden when inactive.
+
+---
+
 ## 🔄 Sign Convention — Critical for Correct Readings
 
 Different inverters and meters use different sign conventions. You **must** understand your sensors to configure the card correctly.
