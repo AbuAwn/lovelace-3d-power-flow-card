@@ -7,104 +7,63 @@ class PowerFlow3DCard extends HTMLElement {
       const title = this.config.title || 'FLUJO DE ENERGÍA';
 
       this.innerHTML = `
-        <ha-card style="background: #0d0f12; border-radius: 20px; overflow: hidden; padding: 18px; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
-          <!-- Header -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding: 0 4px;">
-            <div style="display: flex; align-items: center; gap: 10px; color: #e1e4ea; font-size: 1.05rem; font-weight: 700; letter-spacing: 0.5px;">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8e95a0" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="5" cy="6" r="2"></circle>
-                <circle cx="19" cy="18" r="2"></circle>
-                <path d="M5 8v4a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V8"></path>
-              </svg>
-              <span>${title}</span>
+        <ha-card style="background: #0f1115; border-radius: 16px; overflow: hidden; padding: 16px; font-family: system-ui;">
+          <div style="display: flex; justify-content: space-between; align-items: center; color: #a0a0a0; margin-bottom: 20px; font-weight: 600;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <ha-icon icon="mdi:swap-horizontal"></ha-icon> ${title}
             </div>
-            <div style="display: flex; align-items: center; gap: 7px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 5px 14px; border-radius: 20px; color: #e1e4ea; font-size: 0.85rem; font-weight: 500;">
-              <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00E676; box-shadow: 0 0 8px #00E676;"></span>
-              <span>En vivo</span>
+            <div style="background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; color: #fff; font-size: 0.9em;">
+              <span style="color: #4CAF50;">●</span> En vivo
             </div>
           </div>
           
-          <!-- 3D Scene Viewport -->
-          <div style="position: relative; width: 100%; aspect-ratio: 1/1; border-radius: 16px; overflow: hidden; background: #000;">
-            <img src="${bgImage}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 16px; display: block;">
+          <div style="position: relative; width: 100%; aspect-ratio: 1/1;">
+            <img src="${bgImage}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 12px;">
             
-            <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;" viewBox="0 0 100 100" preserveAspectRatio="none">
-              <defs>
-                <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#00e5ff" flood-opacity="0.9"/>
-                </filter>
-                <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#00E676" flood-opacity="0.9"/>
-                </filter>
-                <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#ff9100" flood-opacity="0.9"/>
-                </filter>
-                <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.6" flood-color="#fff" flood-opacity="0.8"/>
-                </filter>
-              </defs>
+            <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;" viewBox="0 0 100 100" preserveAspectRatio="none">
               <style>
-                .track-line { fill: none; stroke: rgba(255,255,255,0.18); stroke-width: 0.55; stroke-linecap: round; stroke-linejoin: round; }
-                .glow-path { fill: none; stroke-width: 0.85; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 4 6; }
-                .node-dot { fill: #ffffff; filter: url(#dot-glow); }
-                @keyframes flow-forward {
-                  from { stroke-dashoffset: 20; }
-                  to { stroke-dashoffset: 0; }
-                }
-                @keyframes flow-backward {
-                  from { stroke-dashoffset: 0; }
-                  to { stroke-dashoffset: 20; }
-                }
+                .flow-line { fill: none; stroke: rgba(255,255,255,0.2); stroke-width: 0.5; }
+                .flow-anim { fill: none; stroke: #4facfe; stroke-width: 0.8; stroke-dasharray: 4 4; animation: flow 2s linear infinite; }
+                @keyframes flow { to { stroke-dashoffset: -16; } }
+                @keyframes flow-reverse { to { stroke-dashoffset: 16; } }
               </style>
               
-              <!-- GRID: Top-Left to entrance (16, 23) -> (16, 62.5) -> (37, 62.5) -->
-              <path class="track-line" d="M 16 23 L 16 62.5 L 37 62.5" />
-              <path id="path-grid" class="glow-path" d="M 16 23 L 16 62.5 L 37 62.5" stroke="transparent" />
-              <circle cx="37" cy="62.5" r="1.1" class="node-dot" />
+              <path class="flow-line" d="M 15 15 L 15 65 L 35 65" />
+              <path id="path-grid" class="flow-anim" d="M 15 15 L 15 65 L 35 65" />
+              <circle cx="35" cy="65" r="1" fill="#fff" />
 
-              <!-- SOLAR: Top-Center to panels (50, 23) -> (50, 38.5) -->
-              <path class="track-line" d="M 50 23 L 50 38.5" />
-              <path id="path-solar" class="glow-path" d="M 50 23 L 50 38.5" stroke="transparent" />
-              <circle cx="50" cy="38.5" r="1.1" class="node-dot" />
+              <path class="flow-line" d="M 50 15 L 50 40" />
+              <path id="path-solar" class="flow-anim" d="M 50 15 L 50 40" />
+              <circle cx="50" cy="40" r="1" fill="#fff" />
 
-              <!-- LOAD (CASA): Top-Right to living/floor (84, 23) -> (84, 50.5) -> (64, 50.5) -->
-              <path class="track-line" d="M 84 23 L 84 50.5 L 64 50.5" />
-              <path id="path-load" class="glow-path" d="M 84 23 L 84 50.5 L 64 50.5" stroke="transparent" />
-              <circle cx="64" cy="50.5" r="1.1" class="node-dot" />
+              <path class="flow-line" d="M 85 15 L 85 55 L 70 55" />
+              <path id="path-load" class="flow-anim" d="M 85 15 L 85 55 L 70 55" />
+              <circle cx="70" cy="55" r="1" fill="#fff" />
 
-              <!-- BATTERY: Bottom-Center to wall unit (50, 75) -> (50, 62.5) -> (57.5, 62.5) -->
-              <path class="track-line" d="M 50 75 L 50 62.5 L 57.5 62.5" />
-              <path id="path-batt" class="glow-path" d="M 50 75 L 50 62.5 L 57.5 62.5" stroke="transparent" />
-              <circle cx="57.5" cy="62.5" r="1.1" class="node-dot" />
+              <path class="flow-line" d="M 50 80 L 50 65 L 60 65" />
+              <path id="path-batt" class="flow-anim" d="M 50 80 L 50 65 L 60 65" />
+              <circle cx="60" cy="65" r="1" fill="#fff" />
             </svg>
 
-            <!-- Metrics Overlays -->
-            <!-- RED (Grid) -->
-            <div style="position: absolute; top: 5%; left: 16%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.9);">
-              <div id="val-grid" style="color: #ffffff; font-size: 1.35rem; font-weight: 800; line-height: 1.1;">0 W</div>
-              <div style="color: #8e95a0; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; margin-top: 2px;">RED</div>
+            <div style="position: absolute; top: 5%; left: 15%; transform: translateX(-50%); text-align: center;">
+              <div id="val-grid" style="color: #fff; font-size: 1.2em; font-weight: bold;">0 W</div>
+              <div style="color: #888; font-size: 0.7em; letter-spacing: 1px;">RED</div>
             </div>
             
-            <!-- SOLAR -->
-            <div style="position: absolute; top: 5%; left: 50%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.9);">
-              <div id="val-solar" style="color: #ffffff; font-size: 1.35rem; font-weight: 800; line-height: 1.1;">—</div>
-              <div style="color: #8e95a0; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; margin-top: 2px;">SOLAR</div>
+            <div style="position: absolute; top: 5%; left: 50%; transform: translateX(-50%); text-align: center;">
+              <div id="val-solar" style="color: #fff; font-size: 1.2em; font-weight: bold;">0 W</div>
+              <div style="color: #888; font-size: 0.7em; letter-spacing: 1px;">SOLAR</div>
             </div>
             
-            <!-- CASA (Load) -->
-            <div style="position: absolute; top: 5%; left: 84%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.9);">
-              <div id="val-load" style="color: #ffffff; font-size: 1.35rem; font-weight: 800; line-height: 1.1;">0 W</div>
-              <div style="color: #8e95a0; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; margin-top: 2px;">CASA</div>
+            <div style="position: absolute; top: 5%; left: 85%; transform: translateX(-50%); text-align: center;">
+              <div id="val-load" style="color: #fff; font-size: 1.2em; font-weight: bold;">0 W</div>
+              <div style="color: #888; font-size: 0.7em; letter-spacing: 1px;">CASA</div>
             </div>
             
-            <!-- BATTERY & AUTOCONSUMO -->
-            <div style="position: absolute; bottom: 4%; left: 50%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 12px rgba(0,0,0,0.9); width: 80%;">
-              <div id="val-batt" style="color: #ffffff; font-size: 1.45rem; font-weight: 800; line-height: 1.1;">0 W</div>
-              <div id="state-batt" style="color: #8e95a0; font-size: 0.68rem; font-weight: 700; letter-spacing: 1.8px; margin-top: 3px;">REPOSO</div>
-              <div id="soc-batt" style="color: #cfd4dc; font-size: 0.78rem; font-weight: 600; margin-top: 2px;">0%</div>
-              <div id="autoconsumo-batt" style="font-size: 0.78rem; font-weight: 600; margin-top: 4px; color: #cfd4dc;">
-                <span id="autoconsumo-val" style="color: #00E676; font-weight: 800;">100%</span> autoconsumo
-              </div>
+            <div style="position: absolute; bottom: 5%; left: 50%; transform: translateX(-50%); text-align: center;">
+              <div id="val-batt" style="color: #fff; font-size: 1.4em; font-weight: bold;">0 W</div>
+              <div id="state-batt" style="color: #888; font-size: 0.7em; letter-spacing: 1px;">REPOSO</div>
+              <div id="soc-batt" style="color: #aaa; font-size: 0.75em; margin-top: 4px;">0%</div>
             </div>
           </div>
         </ha-card>
@@ -112,124 +71,49 @@ class PowerFlow3DCard extends HTMLElement {
       this.content = this.querySelector('ha-card');
     }
 
-    const getState = (entity) => {
-      if (!entity || !hass.states[entity]) return 0;
-      const val = parseFloat(hass.states[entity].state);
-      return isNaN(val) ? 0 : Math.round(val);
-    };
+    const getRawState = (entity) => entity && hass.states[entity] ? parseFloat(hass.states[entity].state) : 0;
 
-    const grid = getState(this.config.entities.grid);
-    const load = getState(this.config.entities.load);
-    const solar = getState(this.config.entities.solar);
-    const batt = getState(this.config.entities.battery);
-
-    // Formatter
-    const formatW = (w) => `${Math.abs(w)} W`;
-
-    // 1. Grid
-    const elGrid = this.querySelector('#val-grid');
-    const pathGrid = this.querySelector('#path-grid');
-    elGrid.innerText = formatW(grid);
-    if (grid > 10) {
-      // Importing from grid (flow into house)
-      pathGrid.style.stroke = '#00e5ff';
-      pathGrid.style.filter = 'url(#glow-cyan)';
-      pathGrid.style.animation = 'flow-forward 1.8s linear infinite';
-    } else if (grid < -10) {
-      // Exporting to grid (flow out)
-      pathGrid.style.stroke = '#ff9100';
-      pathGrid.style.filter = 'url(#glow-orange)';
-      pathGrid.style.animation = 'flow-backward 1.8s linear infinite';
+    const rawGrid = getRawState(this.config.entities.grid);
+    const rawSolar = getRawState(this.config.entities.solar);
+    const rawBatt = getRawState(this.config.entities.battery);
+    
+    // Auto-calculate load if not provided
+    let load = 0;
+    if (this.config.entities.load) {
+      load = getRawState(this.config.entities.load);
     } else {
-      pathGrid.style.stroke = 'transparent';
-      pathGrid.style.animation = 'none';
+      load = rawGrid + rawSolar + rawBatt;
     }
 
-    // 2. Solar
-    const elSolar = this.querySelector('#val-solar');
-    const pathSolar = this.querySelector('#path-solar');
-    if (solar > 10) {
-      elSolar.innerText = formatW(solar);
-      pathSolar.style.stroke = '#00e5ff';
-      pathSolar.style.filter = 'url(#glow-cyan)';
-      pathSolar.style.animation = 'flow-forward 1.8s linear infinite';
-    } else {
-      elSolar.innerText = '—';
-      pathSolar.style.stroke = 'transparent';
-      pathSolar.style.animation = 'none';
-    }
-
-    // 3. Load (Casa)
-    const elLoad = this.querySelector('#val-load');
-    const pathLoad = this.querySelector('#path-load');
-    elLoad.innerText = formatW(load);
-    if (load > 10) {
-      pathLoad.style.stroke = '#00e5ff';
-      pathLoad.style.filter = 'url(#glow-cyan)';
-      pathLoad.style.animation = 'flow-forward 1.8s linear infinite';
-    } else {
-      pathLoad.style.stroke = 'transparent';
-      pathLoad.style.animation = 'none';
-    }
-
-    // 4. Battery
-    const elBatt = this.querySelector('#val-batt');
-    const elStateBatt = this.querySelector('#state-batt');
+    this.querySelector('#val-grid').innerText = `${Math.abs(Math.round(rawGrid))} W`;
+    this.querySelector('#val-load').innerText = `${Math.abs(Math.round(load))} W`;
+    this.querySelector('#val-solar').innerText = `${Math.abs(Math.round(rawSolar))} W`;
+    
     const pathBatt = this.querySelector('#path-batt');
-    elBatt.innerText = formatW(batt);
-
-    if (batt > 15) {
-      // Discharging (providing power to home) -> Cyan glowing flow upward
-      elStateBatt.innerText = 'DESCARGANDO';
-      pathBatt.style.stroke = '#00e5ff';
-      pathBatt.style.filter = 'url(#glow-cyan)';
-      pathBatt.style.animation = 'flow-backward 1.8s linear infinite';
-    } else if (batt < -15) {
-      // Charging (receiving power) -> Green glowing flow downward
-      elStateBatt.innerText = 'CARGANDO';
-      pathBatt.style.stroke = '#00E676';
-      pathBatt.style.filter = 'url(#glow-green)';
-      pathBatt.style.animation = 'flow-forward 1.8s linear infinite';
+    this.querySelector('#val-batt').innerText = `${Math.abs(Math.round(rawBatt))} W`;
+    
+    if (rawBatt > 0) {
+      this.querySelector('#state-batt').innerText = 'DESCARGANDO';
+      pathBatt.style.animation = 'flow 2s linear infinite';
+      pathBatt.style.stroke = '#4facfe';
+    } else if (rawBatt < 0) {
+      this.querySelector('#state-batt').innerText = 'CARGANDO';
+      pathBatt.style.animation = 'flow-reverse 2s linear infinite';
+      pathBatt.style.stroke = '#4CAF50';
     } else {
-      elStateBatt.innerText = 'REPOSO';
-      pathBatt.style.stroke = 'transparent';
+      this.querySelector('#state-batt').innerText = 'REPOSO';
       pathBatt.style.animation = 'none';
+      pathBatt.style.stroke = 'transparent';
     }
 
-    // SOC & Units
-    const elSoc = this.querySelector('#soc-batt');
-    let socVal = 0;
     if (this.config.entities.battery_soc && hass.states[this.config.entities.battery_soc]) {
-      const rawSoc = parseFloat(hass.states[this.config.entities.battery_soc].state);
-      socVal = isNaN(rawSoc) ? 0 : Math.round(rawSoc);
-    }
-    const units = this.config.battery_units !== undefined ? this.config.battery_units : 1;
-    if (units) {
-      elSoc.innerText = `${socVal}% · ${units} uds`;
-    } else {
-      elSoc.innerText = `${socVal}%`;
-    }
-
-    // Autoconsumo calculation
-    const elAutoconsumo = this.querySelector('#autoconsumo-batt');
-    const elAutoconsumoVal = this.querySelector('#autoconsumo-val');
-    if (this.config.show_autoconsumo !== false) {
-      elAutoconsumo.style.display = 'block';
-      let autoPct = 100;
-      if (load > 0) {
-        const importFromGrid = Math.max(0, grid);
-        const selfConsumed = Math.max(0, load - importFromGrid);
-        autoPct = Math.min(100, Math.max(0, Math.round((selfConsumed / load) * 100)));
-      }
-      elAutoconsumoVal.innerText = `${autoPct}%`;
-    } else {
-      elAutoconsumo.style.display = 'none';
+      this.querySelector('#soc-batt').innerText = `${Math.round(parseFloat(hass.states[this.config.entities.battery_soc].state))}%`;
     }
   }
 
   setConfig(config) {
-    if (!config.entities || !config.entities.grid || !config.entities.load) {
-      throw new Error('Debes definir las entidades en la configuración (grid y load son obligatorias).');
+    if (!config.entities || !config.entities.grid) {
+      throw new Error('Debes definir al menos la entidad grid (la red) en la configuración.');
     }
     this.config = config;
   }

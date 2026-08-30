@@ -6,6 +6,7 @@ A custom Lovelace card that displays your home's energy flow over a beautiful 3D
 - Custom 3D background image support.
 - Animated SVG energy flows based on real-time data.
 - Dynamic battery states (Charging/Discharging/Idle) with color coding.
+- **Auto-calculates Home Load:** If you don't provide a `load` entity, the card automatically calculates your home consumption (`Grid + Solar + Battery`).
 
 ## Installation via HACS
 1. Go to **Frontend** > **Custom repositories** in HACS.
@@ -16,13 +17,13 @@ A custom Lovelace card that displays your home's energy flow over a beautiful 3D
 ```yaml
 type: custom:lovelace-3d-power-flow-card
 title: FLUJO DE ENERGÍA
-# image: /local/mi_casa_3d.png # (Opcional: Si se omite, usa la imagen 3D por defecto)
+image: /local/casa_3d.png
 entities:
   grid: sensor.potencia_red_invertida
-  load: sensor.consumo_casa_total
   solar: sensor.produccion_solar_total
   battery: sensor.hoymiles_hybride_battery_power
   battery_soc: sensor.hoymiles_hybride_battery_soc
+  # load: sensor.consumo_casa_total # Optional: Automatically calculated if omitted
 ```
 
 ### Preview
@@ -30,15 +31,11 @@ entities:
   <img src="preview.png" alt="3D Power Flow Card Preview" width="450">
 </p>
 
-
 ## Options
 | Name | Type | Requirement | Description | Default |
 | --- | --- | --- | --- | --- |
 | `type` | string | **Required** | `custom:lovelace-3d-power-flow-card` | |
-| `entities` | object | **Required** | Entities mapping (`grid`, `load`, `solar`, `battery`, `battery_soc`) | |
+| `entities` | object | **Required** | Entities mapping (`grid`, `solar`, `battery`, `battery_soc`, `load`) | |
 | `title` | string | Optional | Header title | `FLUJO DE ENERGÍA` |
 | `image` | string | Optional | Custom background image path or URL | Built-in 3D House Image |
-| `battery_units` | number | Optional | Number of battery units displayed next to SoC (e.g. `52% · 1 uds`) | `1` |
-| `show_autoconsumo` | boolean | Optional | Display real-time self-consumption percentage | `true` |
-
-
+| `entities.load` | string | Optional | Home load entity. Automatically calculated if omitted | `Grid + Solar + Battery` |
