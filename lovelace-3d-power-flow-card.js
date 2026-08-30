@@ -30,14 +30,20 @@ class PowerFlow3DCard extends HTMLElement {
             
             <svg style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;" viewBox="0 0 100 100" preserveAspectRatio="none">
               <defs>
+                <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#a855f7" flood-opacity="0.95"/>
+                </filter>
+                <filter id="glow-yellow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#fbbf24" flood-opacity="0.95"/>
+                </filter>
                 <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#00e5ff" flood-opacity="0.9"/>
+                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#00e5ff" flood-opacity="0.95"/>
                 </filter>
                 <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#00E676" flood-opacity="0.9"/>
+                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#00E676" flood-opacity="0.95"/>
                 </filter>
                 <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#ff9100" flood-opacity="0.9"/>
+                  <feDropShadow dx="0" dy="0" stdDeviation="0.8" flood-color="#ff9100" flood-opacity="0.95"/>
                 </filter>
                 <filter id="dot-glow" x="-50%" y="-50%" width="200%" height="200%">
                   <feDropShadow dx="0" dy="0" stdDeviation="0.6" flood-color="#fff" flood-opacity="0.8"/>
@@ -82,7 +88,7 @@ class PowerFlow3DCard extends HTMLElement {
             <!-- RED (Grid) -->
             <div style="position: absolute; top: 5%; left: 16%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 10px rgba(0,0,0,0.9);">
               <div id="val-grid" style="color: #ffffff; font-size: 1.35rem; font-weight: 800; line-height: 1.1;">0 W</div>
-              <div style="color: #8e95a0; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; margin-top: 2px;">RED</div>
+              <div id="label-grid" style="color: #8e95a0; font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; margin-top: 2px;">RED</div>
             </div>
             
             <!-- SOLAR -->
@@ -112,67 +118,86 @@ class PowerFlow3DCard extends HTMLElement {
       this.content = this.querySelector('ha-card');
     }
 
-    const getRawState = (entity) => {
+    // Helper: Extract power in Watts (supports both W and kW entities automatically)
+    const getPowerInWatts = (entity) => {
       if (!entity || !hass.states[entity]) return 0;
-      const val = parseFloat(hass.states[entity].state);
-      return isNaN(val) ? 0 : val;
+      const stateObj = hass.states[entity];
+      const val = parseFloat(stateObj.state);
+      if (isNaN(val)) return 0;
+      const unit = stateObj.attributes && stateObj.attributes.unit_of_measurement;
+      if (unit && (unit.toLowerCase() === 'kw' || unit.toLowerCase() === 'kwh')) {
+        return val * 1000;
+      }
+      return val;
     };
 
-    let rawGrid = getRawState(this.config.entities.grid);
-    const rawSolar = Math.max(0, getRawState(this.config.entities.solar));
-    let rawBatt = getRawState(this.config.entities.battery);
+    let rawGrid = getPowerInWatts(this.config.entities.grid);
+    const rawSolar = Math.max(0, getPowerInWatts(this.config.entities.solar));
+    let rawBatt = getPowerInWatts(this.config.entities.battery);
 
-    // Optional manual inverters if user explicitly sets them in config
-    if (this.config.invert_grid === true) {
-      rawGrid = -rawGrid;
-    }
+    // Invert grid:
+    // Standard HA grid sensor: positive = import, negative = export.
+    // An inverted grid sensor (like 'sensor.potencia_red_invertida'): negative = import, positive = export.
+    // We standardize gridPower so that:
+    // > 0 = IMPORTING from grid into house
+    // < 0 = EXPORTING to grid from house
+    const isGridInverted = this.config.invert_grid === true || 
+      (this.config.invert_grid !== false && this.config.entities.grid && this.config.entities.grid.includes('invertid'));
+    const gridPower = isGridInverted ? -rawGrid : rawGrid;
+
+    // Optional manual battery inverter
     if (this.config.invert_battery === true) {
       rawBatt = -rawBatt;
     }
 
-    // Grid power convention:
-    // Positive (> 0): Importing power from the grid into the home
-    // Negative (< 0): Exporting power from home to the grid
-    const gridPower = rawGrid;
-
     // Battery power convention (Hoymiles / standard hybrid storage):
-    // Negative (< 0): Discharging power into the home
-    // Positive (> 0): Charging power into the battery
+    // rawBatt < -5  => DISCHARGING into the home (giving energy)
+    // rawBatt > 5   => CHARGING from solar/grid (storing energy)
     const isDischarging = rawBatt < -5;
     const isCharging = rawBatt > 5;
     const battAbs = Math.abs(rawBatt);
 
-    // Conservation of Energy Calculation:
-    // Home Load = Solar + Grid - Battery
-    // - If Grid is positive (import): adds power to home.
-    // - If Grid is negative (export): subtracts power leaving the home.
-    // - If Battery is negative (discharging): (- rawBatt) is positive, adds power to home.
-    // - If Battery is positive (charging): (- rawBatt) is negative, subtracts power absorbed by battery.
+    // Calculate Home Load (Consumo Casa)
+    // Conservation of Energy: Load = Solar + Grid Import - Grid Export + Battery Discharge - Battery Charge
+    // Equivalently: Load = Solar + gridPower - rawBatt
     let load = 0;
     if (this.config.entities.load) {
-      load = Math.abs(getRawState(this.config.entities.load));
+      load = Math.abs(getPowerInWatts(this.config.entities.load));
     } else {
       load = Math.max(0, Math.round(rawSolar + gridPower - rawBatt));
     }
 
-    // Formatter
-    const formatW = (w) => `${Math.round(Math.abs(w))} W`;
+    // Smart Formatter (kW for >= 1000W, W for < 1000W)
+    const formatPower = (w, isSolar = false) => {
+      const abs = Math.abs(w);
+      if (abs < 5 && isSolar) return '—';
+      if (abs >= 1000) {
+        const kw = (abs / 1000).toFixed(2).replace('.', ',');
+        return `${kw} kW`;
+      }
+      return `${Math.round(abs)} W`;
+    };
 
     // 1. Grid Flow & Display
     const elGrid = this.querySelector('#val-grid');
+    const elGridLabel = this.querySelector('#label-grid');
     const pathGrid = this.querySelector('#path-grid');
-    elGrid.innerText = formatW(gridPower);
+    elGrid.innerText = formatPower(gridPower);
+
     if (gridPower > 5) {
-      // Importing from grid -> Cyan glowing flow into house
-      pathGrid.style.stroke = '#00e5ff';
-      pathGrid.style.filter = 'url(#glow-cyan)';
+      // IMPORTING from grid -> Purple/Violet neon flow into house
+      elGridLabel.innerText = 'IMPORTANDO';
+      pathGrid.style.stroke = '#a855f7';
+      pathGrid.style.filter = 'url(#glow-purple)';
       pathGrid.style.animation = 'flow-forward 1.8s linear infinite';
     } else if (gridPower < -5) {
-      // Exporting to grid -> Orange glowing flow out to grid
+      // EXPORTING to grid -> Orange neon flow out to grid pole
+      elGridLabel.innerText = 'EXPORTANDO';
       pathGrid.style.stroke = '#ff9100';
       pathGrid.style.filter = 'url(#glow-orange)';
       pathGrid.style.animation = 'flow-backward 1.8s linear infinite';
     } else {
+      elGridLabel.innerText = 'RED';
       pathGrid.style.stroke = 'transparent';
       pathGrid.style.animation = 'none';
     }
@@ -180,13 +205,14 @@ class PowerFlow3DCard extends HTMLElement {
     // 2. Solar Flow & Display
     const elSolar = this.querySelector('#val-solar');
     const pathSolar = this.querySelector('#path-solar');
+    elSolar.innerText = formatPower(rawSolar, true);
+
     if (rawSolar > 5) {
-      elSolar.innerText = formatW(rawSolar);
-      pathSolar.style.stroke = '#00e5ff';
-      pathSolar.style.filter = 'url(#glow-cyan)';
+      // Solar producing -> Gold/Amber glowing flow
+      pathSolar.style.stroke = '#fbbf24';
+      pathSolar.style.filter = 'url(#glow-yellow)';
       pathSolar.style.animation = 'flow-forward 1.8s linear infinite';
     } else {
-      elSolar.innerText = '—';
       pathSolar.style.stroke = 'transparent';
       pathSolar.style.animation = 'none';
     }
@@ -194,8 +220,10 @@ class PowerFlow3DCard extends HTMLElement {
     // 3. Load (Casa) Flow & Display
     const elLoad = this.querySelector('#val-load');
     const pathLoad = this.querySelector('#path-load');
-    elLoad.innerText = formatW(load);
+    elLoad.innerText = formatPower(load);
+
     if (load > 5) {
+      // House consuming -> Cyan glowing flow into house
       pathLoad.style.stroke = '#00e5ff';
       pathLoad.style.filter = 'url(#glow-cyan)';
       pathLoad.style.animation = 'flow-forward 1.8s linear infinite';
@@ -208,7 +236,7 @@ class PowerFlow3DCard extends HTMLElement {
     const elBatt = this.querySelector('#val-batt');
     const elStateBatt = this.querySelector('#state-batt');
     const pathBatt = this.querySelector('#path-batt');
-    elBatt.innerText = formatW(battAbs);
+    elBatt.innerText = formatPower(battAbs);
 
     if (isDischarging) {
       // Discharging (giving power to home) -> Cyan glowing flow towards house
@@ -242,7 +270,7 @@ class PowerFlow3DCard extends HTMLElement {
       elSoc.innerText = `${socVal}%`;
     }
 
-    // Autoconsumo calculation
+    // Autoconsumo Calculation
     const elAutoconsumo = this.querySelector('#autoconsumo-batt');
     const elAutoconsumoVal = this.querySelector('#autoconsumo-val');
     if (this.config.show_autoconsumo !== false) {
