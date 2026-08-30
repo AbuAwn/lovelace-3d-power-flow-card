@@ -37,5 +37,8 @@ entities:
 | `type` | string | **Required** | `custom:lovelace-3d-power-flow-card` | |
 | `entities` | object | **Required** | Entities mapping (`grid`, `load`, `solar`, `battery`, `battery_soc`) | |
 | `title` | string | Optional | Header title | `FLUJO DE ENERGÍA` |
-| `image` | string | Optional | Custom background image path or URL | Built-in 3D House Image (`default_3d_house.png`) |
+| `image` | string | Optional | Custom background image path or URL | Built-in 3D House Image |
+| `battery_units` | number | Optional | Number of battery units displayed next to SoC (e.g. `52% · 1 uds`) | `1` |
+| `show_autoconsumo` | boolean | Optional | Display real-time self-consumption percentage | `true` |
+
 
