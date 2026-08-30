@@ -38,7 +38,9 @@ entities:
 | `entities` | object | **Required** | Entities mapping (`grid`, `solar`, `battery`, `battery_soc`, `load`) | |
 | `title` | string | Optional | Header title | `FLUJO DE ENERGÍA` |
 | `entities.load` | string | Optional | Home load entity. Automatically calculated if omitted | `Grid + Solar + Battery` |
+| `invert_grid` | boolean | Optional | Invert grid power sign (auto-detected if entity name contains 'invertid') | `auto` |
 | `invert_battery` | boolean | Optional | Invert battery power sign (if charging/discharging is reversed) | `false` |
 | `battery_units` | number | Optional | Number of battery units displayed next to SoC | `1` |
 | `show_autoconsumo` | boolean | Optional | Display real-time self-consumption percentage | `true` |
+
 

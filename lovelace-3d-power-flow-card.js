@@ -119,18 +119,22 @@ class PowerFlow3DCard extends HTMLElement {
     };
 
     const rawGrid = getRawState(this.config.entities.grid);
-    const rawSolar = getRawState(this.config.entities.solar);
+    const rawSolar = Math.max(0, getRawState(this.config.entities.solar));
     let rawBatt = getRawState(this.config.entities.battery);
 
-    // Invert battery sign if configured (or support standard Hoymiles where negative = discharging)
+    // Invert grid power: Standard convention is positive = import, negative = export.
+    // If entity has 'invertid' in name or invert_grid is true, positive = export, negative = import.
+    const isGridInverted = this.config.invert_grid === true || 
+      (this.config.invert_grid !== false && this.config.entities.grid && this.config.entities.grid.includes('invertid'));
+    const gridPower = isGridInverted ? -rawGrid : rawGrid;
+
+    // Invert battery power if configured
     const invertBattery = this.config.invert_battery === true;
     if (invertBattery) {
       rawBatt = -rawBatt;
     }
 
-    // In Hoymiles / Solar hybrid standard:
-    // rawBatt < 0  => Discharging (providing power to home)
-    // rawBatt > 0  => Charging (taking power from solar/grid)
+    // Battery states (Hoymiles convention: negative = discharging into home, positive = charging)
     const isDischarging = rawBatt < -5;
     const isCharging = rawBatt > 5;
     const battAbs = Math.abs(rawBatt);
@@ -140,35 +144,26 @@ class PowerFlow3DCard extends HTMLElement {
     if (this.config.entities.load) {
       load = Math.abs(getRawState(this.config.entities.load));
     } else {
-      // Energy balance: load = Solar + Grid - Battery (where negative batt adds power)
-      // If discharging (rawBatt < 0): load = solar + max(0, grid) + abs(rawBatt)
-      // If charging (rawBatt > 0): load = max(0, solar + grid - rawBatt)
-      const solarPwr = Math.max(0, rawSolar);
-      const gridImport = Math.max(0, rawGrid);
-      
-      if (isDischarging) {
-        load = solarPwr + gridImport + battAbs;
-      } else if (isCharging) {
-        load = Math.max(0, solarPwr + gridImport - battAbs);
-      } else {
-        load = Math.max(0, solarPwr + gridImport);
-      }
+      // Conservation of Energy: Load = Solar + Grid (import - export) - Battery (charging - discharging)
+      // When discharging: rawBatt is negative -> (- rawBatt) is positive, which adds to load.
+      // When exporting: gridPower is negative -> adds negative (subtracts export from load).
+      load = Math.max(0, Math.round(rawSolar + gridPower - rawBatt));
     }
 
     // Formatter
     const formatW = (w) => `${Math.round(Math.abs(w))} W`;
 
-    // 1. Grid
+    // 1. Grid Flow & Display
     const elGrid = this.querySelector('#val-grid');
     const pathGrid = this.querySelector('#path-grid');
-    elGrid.innerText = formatW(rawGrid);
-    if (rawGrid > 10) {
-      // Importing from grid (flow into house)
+    elGrid.innerText = formatW(gridPower);
+    if (gridPower > 5) {
+      // Importing from grid (flow forward into house)
       pathGrid.style.stroke = '#00e5ff';
       pathGrid.style.filter = 'url(#glow-cyan)';
       pathGrid.style.animation = 'flow-forward 1.8s linear infinite';
-    } else if (rawGrid < -10) {
-      // Exporting to grid (flow out)
+    } else if (gridPower < -5) {
+      // Exporting to grid (flow backward from house to grid)
       pathGrid.style.stroke = '#ff9100';
       pathGrid.style.filter = 'url(#glow-orange)';
       pathGrid.style.animation = 'flow-backward 1.8s linear infinite';
@@ -177,10 +172,10 @@ class PowerFlow3DCard extends HTMLElement {
       pathGrid.style.animation = 'none';
     }
 
-    // 2. Solar
+    // 2. Solar Flow & Display
     const elSolar = this.querySelector('#val-solar');
     const pathSolar = this.querySelector('#path-solar');
-    if (rawSolar > 10) {
+    if (rawSolar > 5) {
       elSolar.innerText = formatW(rawSolar);
       pathSolar.style.stroke = '#00e5ff';
       pathSolar.style.filter = 'url(#glow-cyan)';
@@ -191,11 +186,11 @@ class PowerFlow3DCard extends HTMLElement {
       pathSolar.style.animation = 'none';
     }
 
-    // 3. Load (Casa)
+    // 3. Load (Casa) Flow & Display
     const elLoad = this.querySelector('#val-load');
     const pathLoad = this.querySelector('#path-load');
     elLoad.innerText = formatW(load);
-    if (load > 10) {
+    if (load > 5) {
       pathLoad.style.stroke = '#00e5ff';
       pathLoad.style.filter = 'url(#glow-cyan)';
       pathLoad.style.animation = 'flow-forward 1.8s linear infinite';
@@ -204,7 +199,7 @@ class PowerFlow3DCard extends HTMLElement {
       pathLoad.style.animation = 'none';
     }
 
-    // 4. Battery
+    // 4. Battery Flow & Display
     const elBatt = this.querySelector('#val-batt');
     const elStateBatt = this.querySelector('#state-batt');
     const pathBatt = this.querySelector('#path-batt');
@@ -249,7 +244,7 @@ class PowerFlow3DCard extends HTMLElement {
       elAutoconsumo.style.display = 'block';
       let autoPct = 100;
       if (load > 0) {
-        const importFromGrid = Math.max(0, rawGrid);
+        const importFromGrid = Math.max(0, gridPower);
         const selfConsumed = Math.max(0, load - importFromGrid);
         autoPct = Math.min(100, Math.max(0, Math.round((selfConsumed / load) * 100)));
       }
