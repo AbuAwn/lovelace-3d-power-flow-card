@@ -1,7 +1,7 @@
 # 🏠 3D Power Flow Card for Home Assistant
 
 <p align="center">
-  <img src="preview.png" alt="3D Power Flow Card Preview" width="480">
+  <img src="home_all_day.jpeg" alt="3D Power Flow Card Preview — piscina" width="480">
 </p>
 
 <p align="center">
