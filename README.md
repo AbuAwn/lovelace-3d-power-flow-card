@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  A custom Lovelace card displaying your home's real-time energy flow over a stunning 3D isometric house render, with neon-glowing animated SVG paths and automatic day/night background switching.
+  A custom Lovelace card displaying your home's real-time energy flow over an isometric 3D house render, with neon-glowing animated SVG paths, automatic day/night background switching and per-device consumption overlays (pool, dryer, washer, fridge, vitroceramic, EV charger…).
 </p>
 
 <p align="center">
@@ -17,27 +17,37 @@
 
 ## ✨ Features
 
-- **🌅 Dynamic Day & Night 3D Renders** — Automatically switches between a daytime and nighttime 3D isometric house based on `sun.sun` entity or solar production level.
+- **🌅 Dynamic Day & Night 3D Renders** — Switches between the daytime (`home_all_day.jpeg`) and nighttime (`home_all_night.jpeg`) isometric renders based on `sun.sun` or solar production.
 - **⚡ Animated Neon Energy Flows** — Color-coded glowing SVG paths with directional animations:
   - 🟣 **Purple** — Grid Import
   - 🟠 **Orange** — Grid Export
   - 🟡 **Amber / Gold** — Solar Generation
   - 🔵 **Cyan** — House Consumption & Battery Discharge
   - 🟢 **Green** — Battery Charging
-- **🔢 Auto Home Load Calculation** — If no `load` entity is set, the card calculates consumption automatically:  
-  `Home Load = Solar + Grid Import - Battery Charge + Battery Discharge`
+- **🔌 Individual Device Overlays** — Superimpose live consumption of your appliances directly on the house:
+  - 🏊 Filtrado piscina (`pool`)
+  - 🌀 Secadora (`dryer`)
+  - 🫧 Lavadora (`washer`)
+  - 🧊 Nevera (`fridge`)
+  - 🍳 Vitrocerámica (`vitro`)
+  - 🚗 Cargador del coche (`ev`)
+  - …and the **Resto** (remaining unmonitored load) stays at the bottom of the image.
+- **📡 "Cargas si seguimiento"** — Only devices with a configured `entity` are monitored and shown. A device without an entity is simply not rendered.
+- **🔢 Auto Home Load Calculation** — If no `load` entity is set: `Home Load = Solar + Grid Import − Battery Charge + Battery Discharge`.
 - **📊 Real-time Self-Consumption (Autoconsumo)** — Percentage of load covered by local sources.
-- **🔌 Universal Unit Support** — Automatically detects and converts `W` / `kW` sensor states.
-- **🖼️ Custom Background Images** — Override day, night, or use a single static image.
+- **🔢 Universal Unit Support** — Automatically converts `W` / `kW` sensor states.
 
 ---
 
-## 📦 Installation via HACS
+## 📦 Installation
 
-1. Go to **HACS → Frontend → ⋮ → Custom repositories**.
-2. Add `https://github.com/AbuAwn/lovelace-3d-power-flow-card` and set category to **Lovelace**.
-3. Search for **3D Power Flow Card** and install it.
-4. Reload your browser (`Ctrl+F5`).
+1. **HACS**: *HACS → Frontend → ⋮ → Custom repositories* → add `https://github.com/AbuAwn/lovelace-3d-power-flow-card` (category **Lovelace**) → install **3D Power Flow Card**.
+2. **Copy the backgrounds** (required — they are NOT embedded). Copy `home_all_day.jpeg` and `home_all_night.jpeg` into your `config/www/` folder so they are reachable at:
+   - `/local/home_all_day.jpeg`
+   - `/local/home_all_night.jpeg`
+
+   > If you rename them, update `day_image` / `night_image` in the config below.
+3. Reload your browser (`Ctrl+F5`).
 
 ---
 
@@ -52,73 +62,104 @@ entities:
   battery: sensor.hoymiles_hybride_battery_power
   battery_soc: sensor.hoymiles_hybride_battery_soc
   # load: sensor.consumo_casa_total   # Optional: auto-calculated if omitted
-invert_grid: true   # Use if your grid sensor is sign-inverted (see Sign Convention below)
+
+invert_grid: true     # see Sign Convention below
 battery_units: 1
+
+# The 6 appliance overlays — only those with an entity are monitored/shown.
+individual:
+  - entity: sensor.filtrado_piscina
+    name: Piscina
+    type: pool
+    display_zero: false        # hide the chip when off
+
+  - entity: sensor.secadora
+    name: Secadora
+    type: dryer
+    display_zero: false
+
+  - entity: sensor.lavadora
+    name: Lavadora
+    type: washer
+    display_zero: false
+
+  - entity: sensor.nevera
+    name: Nevera
+    type: fridge
+
+  - entity: sensor.vitroceramica
+    name: Vitrocerámica
+    type: vitro
+    display_zero: false
+
+  - entity: sensor.cargador_coche
+    name: Coche
+    type: ev
+    display_zero: false
 ```
 
 ---
 
-## 🔌 Individual Devices (Piscina, AC, Calentador, etc.)
+## 🔌 Individual Devices
 
-Add a `individual` list to monitor specific devices. They appear as live chips below the 3D house:
+Each entry in `individual` represents a monitored appliance. The card reads its power from `entity` and draws:
+- a **chip** (colored dot + name + live power) at its position on the image, and
+- an **animated flow path** from the house load node to that position.
 
-```yaml
-individual:
-  - entity: sensor.piscina_potencia
-    name: Piscina
-    type: pool              # Enables preset icon & color
-    display_zero: false     # Hide chip when off
+### Fields
 
-  - entity: sensor.termo_potencia
-    name: Calentador
-    type: heater
-    display_zero: false
-
-  - entity: sensor.id_ac_salon_power
-    name: Aire Acondicionado
-    type: ac
-    display_zero: true      # Always visible
-
-  - entity: sensor.secadora_potencia
-    name: Secadora
-    type: dryer
-    display_zero: false
-    display_zero_tolerance: 1   # Hide below 1 W
-```
-
-### Available `type` presets
-
-| `type` | Icon | Color |
+| Field | Type | Description |
 |---|---|---|
-| `pool` | 🏊 `mdi:pool` | Cyan |
-| `heater` | 🔥 `mdi:water-boiler` | Orange |
-| `ac` | ❄️ `mdi:air-conditioner` | Light Blue |
-| `washer` | 🫧 `mdi:washing-machine` | Sky Blue |
-| `dryer` | 🌀 `mdi:tumble-dryer` | Amber |
-| `ev` | 🔌 `mdi:ev-station` | Green |
-| `boiler` | 🔥 `mdi:fire` | Orange |
-| `oven` | 🍳 `mdi:stove` | Orange |
+| `entity` | string | **Required** — HA power sensor. If omitted, the device is not monitored and is not rendered ("cargas si seguimiento"). |
+| `name` | string | Display label. Defaults to the `type` preset label. |
+| `type` | string | Preset icon/color/position (see table). If omitted, it is inferred from the name (Spanish + English keywords). |
+| `icon` | string | Override the MDI icon. |
+| `color` | string | Override the accent color (CSS color). |
+| `top` / `left` | string | Override the chip position on the image, e.g. `top: '48%'`, `left: '76%'`. |
+| `display_zero` | boolean | `true` (default): always show the chip (shows `0 W` when off). `false`: hide the chip and its flow when off. |
+| `display_zero_tolerance` | number | Power (W) below which the device is considered off. Default `1`. |
 
-You can also override icon and color freely:
-```yaml
-individual:
-  - entity: sensor.mi_dispositivo
-    name: Dispositivo
-    icon: mdi:television       # Any MDI icon
-    color: '#ff6b35'           # Any CSS color
-    display_zero: false
+### `type` presets (default positions are for the bundled renders)
+
+| `type` | Appliance | Icon | Color |
+|---|---|---|---|
+| `pool` | Filtrado piscina | `mdi:pool` | Cyan |
+| `dryer` | Secadora | `mdi:tumble-dryer` | Amber |
+| `washer` | Lavadora | `mdi:washing-machine` | Sky blue |
+| `fridge` | Nevera | `mdi:fridge` | Light blue |
+| `vitro` | Vitrocerámica | `mdi:stove` | Red |
+| `ev` | Cargador del coche | `mdi:ev-station` | Green |
+| `heater` | Calentador | `mdi:water-boiler` | Orange |
+| `ac` | Aire acondicionado | `mdi:air-conditioner` | Light blue |
+| `boiler` | Caldera | `mdi:fire` | Orange |
+| `oven` | Horno | `mdi:stove` | Orange |
+| `dishwasher` | Lavavajillas | `mdi:dishwasher` | Blue |
+
+### "Resto" (remaining load)
+
+When `individual` devices exist, the card automatically computes and displays the remaining house load as a **RESTO** chip at the bottom of the image:
+
+```
+Resto = Home Load − Σ(individual devices)
 ```
 
-### Device Chip Behavior
-- **Active** (power > 0): Full opacity, colored glow border, shows `X W` or `X,XX kW`.
-- **Inactive** (power ≈ 0): Dimmed chip, shows `—`.
-- With `display_zero: false`: Chip is hidden when inactive.
+It only appears while there is remaining load (> 5 W). Disable it with `show_other: false`.
+
+### Adjusting positions
+
+The default positions are tuned for the bundled renders. Because the SVG overlay uses a `0…100` coordinate space over the square image, `top`/`left` percentages are also the flow endpoints. To move a device, override `top` and `left`:
+
+```yaml
+  - entity: sensor.nevera
+    name: Nevera
+    type: fridge
+    top: '42%'      # vertical position (0% = top)
+    left: '58%'     # horizontal position (0% = left)
+```
 
 ---
 
 ## 🔄 Sign Convention — Critical for Correct Readings
-
-Different inverters and meters use different sign conventions. You **must** understand your sensors to configure the card correctly.
 
 ### Grid sensor (`entities.grid`)
 
@@ -127,57 +168,17 @@ Different inverters and meters use different sign conventions. You **must** unde
 | Positive (`> 0`) | Importing from grid (default expected) |
 | Negative (`< 0`) | Exporting to grid (default expected) |
 
-If your grid sensor is **inverted** (e.g. `sensor.potencia_red_invertida`, negative = importing), set:
-```yaml
-invert_grid: true
-```
-> **Auto-detection:** If the entity name contains the word `invertid`, the card enables `invert_grid` automatically.
+If your grid sensor is inverted (negative = importing), set `invert_grid: true`.
+> **Auto-detection:** if the entity id contains `invertid`, `invert_grid` is enabled automatically.
 
 ### Battery sensor (`entities.battery`)
 
 | Sensor State | Meaning |
 |---|---|
-| Negative (`< 0`) | Discharging — powering the home (Hoymiles default) |
-| Positive (`> 0`) | Charging — storing solar energy (Hoymiles default) |
+| Negative (`< 0`) | Discharging (Hoymiles default) |
+| Positive (`> 0`) | Charging (Hoymiles default) |
 
-If your battery sensor has the **opposite** convention (positive = discharging), set:
-```yaml
-invert_battery: true
-```
-
-### Example — DTS WiFi G1 + Hoymiles inverter
-
-```yaml
-type: custom:lovelace-3d-power-flow-card
-title: FLUJO DE ENERGÍA
-entities:
-  grid: sensor.potencia_red_invertida
-  solar: sensor.suma_potencia_inversores_2
-  battery: sensor.energia_dts_wifi_g1_potencia_neta_bateria
-  battery_soc: sensor.energia_hybrid_inverter_state_of_charge
-
-invert_grid: true        # sensor.potencia_red_invertida: negativo = importar
-invert_battery: true     # sensor.energia_dts_wifi_g1: positivo = descargar
-
-battery_units: 1
-show_autoconsumo: true
-```
-
----
-
-## 🖼️ Custom Backgrounds
-
-By default, the card uses beautiful built-in 3D renders (both embedded as high-resolution WebP).  
-You can override them per-state or use a single static image:
-
-```yaml
-# Custom day/night images:
-day_image: /local/mi_casa_dia.png
-night_image: /local/mi_casa_noche.png
-
-# OR a single static image (overrides day/night logic):
-image: /local/mi_casa.png
-```
+If your battery sensor uses the opposite convention (positive = discharging), set `invert_battery: true`.
 
 ---
 
@@ -187,23 +188,25 @@ image: /local/mi_casa.png
 
 | Key | Type | Required | Description |
 |---|---|---|---|
-| `entities.grid` | string | **Required** | Grid power sensor entity |
+| `entities.grid` | string | **Required** | Grid power sensor |
 | `entities.solar` | string | Optional | Solar production sensor |
 | `entities.battery` | string | Optional | Battery power sensor |
 | `entities.battery_soc` | string | Optional | Battery state of charge (%) |
-| `entities.load` | string | Optional | Home load sensor. **Auto-calculated if omitted** |
+| `entities.load` | string | Optional | Home load sensor (auto-calculated if omitted) |
 
 ### Card Options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `title` | string | `FLUJO DE ENERGÍA` | Header title |
-| `invert_grid` | boolean | `auto` | Invert grid power sign. Auto-detected if entity name contains `invertid` |
-| `invert_battery` | boolean | `false` | Invert battery power sign (positive = discharging for some sensors) |
-| `battery_units` | number | `1` | Number of battery units displayed next to SoC (set to `0` to hide) |
-| `show_autoconsumo` | boolean | `true` | Show real-time self-consumption percentage |
-| `day_image` | string | Built-in 3D Day Render | Custom background URL/path for daytime |
-| `night_image` | string | Built-in 3D Night Render | Custom background URL/path for nighttime |
+| `individual` | list | `[]` | Monitored appliance overlays (see above) |
+| `invert_grid` | boolean | `auto` | Invert grid power sign |
+| `invert_battery` | boolean | `false` | Invert battery power sign |
+| `battery_units` | number | `1` | Number of battery units shown next to SoC (`0` to hide) |
+| `show_autoconsumo` | boolean | `true` | Show self-consumption percentage |
+| `show_other` | boolean | `true` (with devices) | Show the remaining load ("RESTO") chip |
+| `day_image` | string | `/local/home_all_day.jpeg` | Daytime background |
+| `night_image` | string | `/local/home_all_night.jpeg` | Nighttime background |
 | `image` | string | — | Static background override (disables day/night switching) |
 
 ---
@@ -213,30 +216,21 @@ image: /local/mi_casa.png
 When no `load` entity is provided:
 
 ```
-Home Load (W) = Solar (W) + Grid Power (W) - Battery Power (W)
+Home Load (W) = Solar (W) + Grid Power (W) − Battery Power (W)
 ```
 
-Where:
-- `Grid Power` is positive when **importing**, negative when **exporting**.
-- `Battery Power` is negative when **discharging** (after sign inversion if `invert_battery: true`).
+Where `Grid Power` is positive when importing and `Battery Power` is negative when discharging (after any configured sign inversion).
 
-**Self-Consumption (Autoconsumo):**
 ```
-Autoconsumo (%) = ((Home Load - Grid Import) / Home Load) × 100
+Autoconsumo (%) = ((Home Load − Grid Import) / Home Load) × 100
 ```
 
 ---
 
 ## 🌙 Day / Night Detection
 
-The card selects the background automatically:
-
-1. **Priority 1:** `sun.sun` entity in Home Assistant (most reliable).  
-   - `above_horizon` → Day image  
-   - `below_horizon` → Night image
-2. **Fallback:** If `sun.sun` is unavailable, uses solar production:  
-   - `Solar > 10 W` → Day image  
-   - `Solar ≤ 10 W` → Night image
+1. **Priority 1:** `sun.sun` — `above_horizon` → day, `below_horizon` → night.
+2. **Fallback:** solar production — `> 10 W` → day, otherwise night.
 
 ---
 
@@ -244,11 +238,13 @@ The card selects the background automatically:
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| Solar shows `—` at midday | Sensor in `kW` without `unit_of_measurement` attribute | Verify `unit_of_measurement` in HA Developer Tools |
-| Battery shows `CARGANDO` when it should discharge | Sensor sign is inverted | Add `invert_battery: true` |
-| Grid shows `IMPORTANDO` when exporting | Sensor sign is inverted | Add `invert_grid: true` |
-| Casa shows incorrect value | Grid or battery sign wrong → bad energy balance | Fix sign conventions above |
-| Autoconsumo always 0% | Grid > Load in calculation | Usually resolves after fixing sign convention |
+| Background image missing / black | Images not copied to `config/www/` | Copy `home_all_day.jpeg` and `home_all_night.jpeg` to `www/` (served at `/local/`). |
+| Solar shows `—` at midday | Sensor reports `kW` without `unit_of_measurement` | Verify `unit_of_measurement` in HA Developer Tools. |
+| Battery shows `CARGANDO` when it should discharge | Sensor sign inverted | Add `invert_battery: true`. |
+| Grid shows `IMPORTANDO` when exporting | Sensor sign inverted | Add `invert_grid: true`. |
+| Casa shows an incorrect value | Wrong grid/battery sign → bad energy balance | Fix sign conventions above. |
+| A device never appears | Missing `entity` in its `individual` entry | Devices without an entity are not monitored ("cargas si seguimiento"). |
+| Chip overlaps something on the render | Position off for your image | Override `top` / `left` for that device. |
 
 ---
 
