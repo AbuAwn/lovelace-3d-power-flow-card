@@ -1,7 +1,7 @@
 # 🏠 3D Power Flow Card for Home Assistant
 
 <p align="center">
-  <img src="home_all_day.jpeg" alt="3D Power Flow Card Preview — piscina" width="480">
+  <img src="home_all_day.png" alt="3D Power Flow Card Preview — piscina" width="480">
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ## ✨ Features
 
-- **🌅 Dynamic Day & Night 3D Renders** — Switches between the daytime (`home_all_day.jpeg`) and nighttime (`home_all_night.jpeg`) isometric renders based on `sun.sun` or solar production.
+- **🌅 Dynamic Day & Night 3D Renders** — Switches between the daytime (`home_all_day.png`) and nighttime (`home_all_night.png`) isometric renders based on `sun.sun` or solar production.
 - **⚡ Animated Neon Energy Flows** — Color-coded glowing SVG paths with directional animations:
   - 🟣 **Purple** — Grid Import
   - 🟠 **Orange** — Grid Export
@@ -42,9 +42,9 @@
 ## 📦 Installation
 
 1. **HACS**: *HACS → Frontend → ⋮ → Custom repositories* → add `https://github.com/AbuAwn/lovelace-3d-power-flow-card` (category **Lovelace**) → install **3D Power Flow Card**.
-2. **Copy the backgrounds** (required — they are NOT embedded). Copy `home_all_day.jpeg` and `home_all_night.jpeg` into your `config/www/` folder so they are reachable at:
-   - `/local/home_all_day.jpeg`
-   - `/local/home_all_night.jpeg`
+2. **Copy the backgrounds** (required — they are NOT embedded). Copy `home_all_day.png` and `home_all_night.png` into your `config/www/` folder so they are reachable at:
+   - `/local/home_all_day.png`
+   - `/local/home_all_night.png`
 
    > If you rename them, update `day_image` / `night_image` in the config below.
 3. Reload your browser (`Ctrl+F5`).
@@ -205,8 +205,8 @@ If your battery sensor uses the opposite convention (positive = discharging), se
 | `battery_units` | number | `1` | Number of battery units shown next to SoC (`0` to hide) |
 | `show_autoconsumo` | boolean | `true` | Show self-consumption percentage |
 | `show_other` | boolean | `true` (with devices) | Show the remaining load ("RESTO") chip |
-| `day_image` | string | `/local/home_all_day.jpeg` | Daytime background |
-| `night_image` | string | `/local/home_all_night.jpeg` | Nighttime background |
+| `day_image` | string | `/local/home_all_day.png` | Daytime background |
+| `night_image` | string | `/local/home_all_night.png` | Nighttime background |
 | `image` | string | — | Static background override (disables day/night switching) |
 
 ---
@@ -238,7 +238,7 @@ Autoconsumo (%) = ((Home Load − Grid Import) / Home Load) × 100
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| Background image missing / black | Images not copied to `config/www/` | Copy `home_all_day.jpeg` and `home_all_night.jpeg` to `www/` (served at `/local/`). |
+| Background image missing / black | Images not copied to `config/www/` | Copy `home_all_day.png` and `home_all_night.png` to `www/` (served at `/local/`). |
 | Solar shows `—` at midday | Sensor reports `kW` without `unit_of_measurement` | Verify `unit_of_measurement` in HA Developer Tools. |
 | Battery shows `CARGANDO` when it should discharge | Sensor sign inverted | Add `invert_battery: true`. |
 | Grid shows `IMPORTANDO` when exporting | Sensor sign inverted | Add `invert_grid: true`. |

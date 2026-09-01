@@ -4,10 +4,11 @@
 // consumption overlays (pool, dryer, washer, fridge, vitroceramic, EV charger).
 // =============================================================================
 
-// Default background renders. The images must live in Home Assistant's
-// `config/www/` folder so they are reachable under `/local/...`.
-const DEFAULT_DAY_IMAGE = "/local/home_all_day.jpeg";
-const DEFAULT_NIGHT_IMAGE = "/local/home_all_night.jpeg";
+// Default background renders (PNG works reliably across browsers / HACS / HA).
+// The images must live in Home Assistant's `config/www/` folder so they are
+// reachable under `/local/...`.
+const DEFAULT_DAY_IMAGE = "/local/home_all_day.png";
+const DEFAULT_NIGHT_IMAGE = "/local/home_all_night.png";
 
 // Presets per well-known device type: MDI icon, accent color and default label.
 const DEVICE_TYPES = {
